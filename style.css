@@ -27,6 +27,25 @@ html, body {
   font-size: 20px;
 }
 
+#endMenu {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  z-index: 9;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.endBtn {
+  padding: 16px 32px;
+  border: 1px solid #fff;
+  font-size: 22px;
+}
+
 
 /* Canvas：上 70% */
 #gameCanvas {
