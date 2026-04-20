@@ -1,0 +1,80 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#songMenu {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.song {
+  padding: 16px 32px;
+  border: 1px solid #fff;
+  font-size: 20px;
+}
+
+
+/* Canvas：上 70% */
+#gameCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70%;
+  background: #000;
+}
+
+/* 鍵盤：下 30% */
+#keyboard {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 30%;
+  background: #222;
+  display: flex;
+}
+
+/* 白鍵 */
+.key.white {
+  flex: 1;
+  background: #eee;
+  border: 1px solid #999;
+}
+
+/* 黒鍵 */
+.key.black {
+  position: absolute;
+  width: 2.5%;
+  height: 60%;
+  background: #000;
+  top: 0;
+  z-index: 2;
+}
+
+/* Safari Audio unlock 用 */
+#startOverlay {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
