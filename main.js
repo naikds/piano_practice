@@ -8,6 +8,14 @@ const keyboard = document.getElementById("keyboard");
 const overlay = document.getElementById("startOverlay");
 const songMenu = document.getElementById("songMenu");
 
+const endMenu = document.getElementById("endMenu");
+const replayBtn = document.getElementById("replayBtn");
+const selectBtn = document.getElementById("selectBtn");
+
+let freePlay = false;
+let lastNoteTime = 0;
+
+
 /* =================================================
    Canvas
    ================================================= */
@@ -218,14 +226,24 @@ function draw(ts) {
   ctx.lineTo(canvas.width, judge);
   ctx.stroke();
 
+let alive = false;
+
   notes.forEach(n => {
     const y = judge - (n.time - now) * SPEED;
     if (y < -30 || y > canvas.clientHeight + 30) return;
+
+   alive = true;
+     
     const r = keyRect(n.midi);
     if (!r) return;
     ctx.fillStyle = "#0af";
     ctx.fillRect(r.x, y, r.w, 18);
   });
+   
+   if (!freePlay && !alive && now > lastNoteTime + 0.5) {
+    endMenu.style.display = "flex";
+    return;
+  }
 
   requestAnimationFrame(draw);
 }
@@ -238,15 +256,36 @@ async function loadSong(url) {
   const res = await fetch(url);
   const buf = await res.arrayBuffer();
   notes = parseMIDI(buf).filter(n => keysByMidi.has(n.midi));
+  lastNoteTime = Math.max(...notes.map(n => n.time));
   startTime = null;
 }
 
 songMenu.addEventListener("touchstart", async e => {
   const s = e.target.closest(".song");
   if (!s) return;
-  await loadSong(s.dataset.url);
+
+  if (s.dataset.mode === "free") {
+    freePlay = true;
+    notes = [];
+    startTime = null;
+  } else {
+    freePlay = false;
+    await loadSong(s.dataset.url);
+  }
+
   songMenu.style.display = "none";
+  endMenu.style.display = "none";
 }, { passive: false });
+
+replayBtn.onclick = () => {
+  startTime = null;
+  endMenu.style.display = "none";
+};
+
+selectBtn.onclick = () => {
+  endMenu.style.display = "none";
+  songMenu.style.display = "flex";
+};
 
 /* =================================================
    起動
@@ -256,5 +295,5 @@ overlay.addEventListener("touchstart", () => {
   initAudio();
   overlay.style.display = "none";
   songMenu.style.display = "flex";
-  requestAnimationFrame(draw);
+ requestAnimationFrame(draw);
 });
