@@ -4,6 +4,11 @@
       "id": "twinkle",
       "title": "きらきら星",
       "file": "twinkle.json"
+    },
+    {
+      "id": "test",
+      "title": "テスト",
+      "file": "test.json"
     }
   ]
 }
