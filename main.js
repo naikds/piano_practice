@@ -16,6 +16,7 @@ let notes = [];
 let startTime = null;
 let lastNoteTime = 0;
 let hasShownNote = false;
+let freePlay = false;
 
 /* =================================================
    Canvas
