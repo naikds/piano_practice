@@ -12,9 +12,10 @@ const endMenu = document.getElementById("endMenu");
 const replayBtn = document.getElementById("replayBtn");
 const selectBtn = document.getElementById("selectBtn");
 
-let freePlay = false;
+let notes = [];
+let startTime = null;
 let lastNoteTime = 0;
-
+let hasShownNote = false;
 
 /* =================================================
    Canvas
@@ -210,7 +211,6 @@ function parseMIDI(buf) {
    ================================================= */
 
 let notes = [];
-let startTime = null;
 const SPEED = 220;
 
 function draw(ts) {
@@ -233,14 +233,14 @@ let alive = false;
     if (y < -30 || y > canvas.clientHeight + 30) return;
 
    alive = true;
-     
+     hasShownNote = true;
     const r = keyRect(n.midi);
     if (!r) return;
     ctx.fillStyle = "#0af";
     ctx.fillRect(r.x, y, r.w, 18);
   });
    
-   if (!freePlay && !alive && now > lastNoteTime + 0.5) {
+   if (!freePlay && hasShownNote && !alive && now > lastNoteTime + 0.5) {
     endMenu.style.display = "flex";
     return;
   }
@@ -258,6 +258,7 @@ async function loadSong(url) {
   notes = parseMIDI(buf).filter(n => keysByMidi.has(n.midi));
   lastNoteTime = Math.max(...notes.map(n => n.time));
   startTime = null;
+   hasShownNote = false;
 }
 
 songMenu.addEventListener("touchstart", async e => {
@@ -279,6 +280,7 @@ songMenu.addEventListener("touchstart", async e => {
 
 replayBtn.onclick = () => {
   startTime = null;
+   hasShownNote = false
   endMenu.style.display = "none";
 };
 
