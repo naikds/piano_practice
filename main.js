@@ -135,15 +135,20 @@ keyboard.addEventListener("touchstart", e => {
    MIDI 最小パーサ
    ================================================= */
 
-function readVar(view, pos) {
+function readVar(view, pos, limit) {
   let v = 0, i = 0;
+
   while (true) {
+    if (pos + i >= limit) {
+      throw new Error("readVar: unexpected end of track");
+    }
     const b = view.getUint8(pos + i);
     v = (v << 7) | (b & 0x7f);
-    if (!(b & 0x80)) break;
     i++;
+    if (!(b & 0x80)) break;
   }
-  return { v, l: i + 1 };
+
+  return { v, l: i };
 }
 
 function parseMIDI(buf) {
@@ -160,44 +165,94 @@ function parseMIDI(buf) {
 
   if (str(4) !== "MThd") return [];
   p += 4;
-  u16(); const tracks = u16(); const div = u16();
+  u16();
+  const tracks = u16();
+  const div = u16();
 
   let tempo = 500000;
   const notes = [];
 
   for (let t = 0; t < tracks; t++) {
-    str(4); const end = p + u32();
-    let time = 0, run = 0;
+    if (str(4) !== "MTrk") break;
+
+    const trackLen = u32();
+    const trackEnd = p + trackLen;
+
+    let time = 0;
+    let run = 0;
     const on = new Map();
+    let broken = false;
 
-    while (p < end) {
-      const dt = readVar(v, p); p += dt.l; time += dt.v;
-      let s = v.getUint8(p);
-      if (s < 0x80) s = run; else p++, run = s;
+    while (p < trackEnd) {
+      try {
+        // Δtime
+        const dt = readVar(v, p, trackEnd);
+        p += dt.l;
+        time += dt.v;
 
-      if ((s & 0xf0) === 0x90) {
-        const n = v.getUint8(p++), vel = v.getUint8(p++);
-        if (vel) on.set(n, time);
-        else if (on.has(n)) {
-          notes.push({ n, s: on.get(n), e: time });
-          on.delete(n);
+        if (p >= trackEnd) break;
+
+        let s = v.getUint8(p);
+        if (s < 0x80) {
+          s = run;
+        } else {
+          p++;
+          run = s;
         }
-      } else if ((s & 0xf0) === 0x80) {
-        const n = v.getUint8(p++); p++;
-        if (on.has(n)) {
-          notes.push({ n, s: on.get(n), e: time });
-          on.delete(n);
+
+        // Note On
+        if ((s & 0xf0) === 0x90) {
+          const n = v.getUint8(p++);
+          const vel = v.getUint8(p++);
+          if (vel) {
+            on.set(n, time);
+          } else if (on.has(n)) {
+            notes.push({ n, s: on.get(n), e: time });
+            on.delete(n);
+          }
+
+        // Note Off
+        } else if ((s & 0xf0) === 0x80) {
+          const n = v.getUint8(p++);
+          p++;
+          if (on.has(n)) {
+            notes.push({ n, s: on.get(n), e: time });
+            on.delete(n);
+          }
+
+        // Meta Event
+        } else if (s === 0xff) {
+          const type = v.getUint8(p++);
+          const l = readVar(v, p, trackEnd);
+          p += l.l;
+
+          if (type === 0x51 && l.v === 3) {
+            tempo =
+              (v.getUint8(p) << 16) |
+              (v.getUint8(p + 1) << 8) |
+               v.getUint8(p + 2);
+          }
+
+          // End of Track → 正常終了
+          if (type === 0x2f) {
+            break;
+          }
+
+          p += l.v;
+
+        // その他の MIDI イベント
+        } else {
+          p += ((s & 0xf0) === 0xc0 || (s & 0xf0) === 0xd0) ? 1 : 2;
         }
-      } else if (s === 0xff) {
-        const type = v.getUint8(p++);
-        const l = readVar(v, p); p += l.l;
-        if (type === 0x51)
-          tempo = (v.getUint8(p) << 16) | (v.getUint8(p + 1) << 8) | v.getUint8(p + 2);
-        p += l.v;
-      } else {
-        p += (s & 0xf0) === 0xc0 || (s & 0xf0) === 0xd0 ? 1 : 2;
+      } catch (e) {
+        console.warn("Broken track skipped");
+        broken = true;
+        break;
       }
     }
+
+    // 壊れていても、次のトラックへ
+    p = trackEnd;
   }
 
   const sec = tempo / 1e6 / div;
