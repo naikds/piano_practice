@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "title": "test phrase",
+    "scrollSpeed": 1.0,
+    "keyRange": {
+      "start": "C4",
+      "octaves": 3
+    }
+  },
+  "notes": [
+    { "key": "C5", "time": 0.0 },
+    { "key": "C5", "time": 0.5 },
+    { "key": "E5", "time": 1.0 },
+    { "key": "G5", "time": 1.5 },
+
+    { "key": "C5", "time": 2.5 },
+    { "key": "C5", "time": 3.0 },
+    { "key": "E5", "time": 3.5 },
+    { "key": "E5", "time": 4.0 },
+    { "key": "F5", "time": 4.5 },
+    { "key": "F5", "time": 5.0 }
+  ]
+}
