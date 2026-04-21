@@ -16,8 +16,8 @@
     { "key": "C5", "time": 3.0 },
     { "key": "C5", "time": 3.2 },
     { "key": "E5", "time": 3.6 },
-    { "key": "E5", "time": 4.8 },
-    { "key": "F5", "time": 5.2 },
-    { "key": "F5", "time": 5.4 }
+    { "key": "E5", "time": 3.8 },
+    { "key": "F5", "time": 4.2 },
+    { "key": "F5", "time": 4.4 }
   ]
 }
