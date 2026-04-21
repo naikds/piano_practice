@@ -1,0 +1,65 @@
+{
+  meta: {
+    title: "Twinkle Twinkle Little Star",
+    scrollSpeed: 1.0,
+    keyRange: {
+      start: "C4",
+      octaves: 3
+    }
+  },
+  notes: [
+    // C C G G A A G
+    { key: "C4", time: 2.0 },
+    { key: "C4", time: 2.5 },
+    { key: "G4", time: 3.0 },
+    { key: "G4", time: 3.5 },
+    { key: "A4", time: 4.0 },
+    { key: "A4", time: 4.5 },
+    { key: "G4", time: 5.0 },
+
+    // F F E E D D C
+    { key: "F4", time: 6.0 },
+    { key: "F4", time: 6.5 },
+    { key: "E4", time: 7.0 },
+    { key: "E4", time: 7.5 },
+    { key: "D4", time: 8.0 },
+    { key: "D4", time: 8.5 },
+    { key: "C4", time: 9.0 },
+
+    // G G F F E E D
+    { key: "G4", time: 10.0 },
+    { key: "G4", time: 10.5 },
+    { key: "F4", time: 11.0 },
+    { key: "F4", time: 11.5 },
+    { key: "E4", time: 12.0 },
+    { key: "E4", time: 12.5 },
+    { key: "D4", time: 13.0 },
+
+    // G G F F E E D
+    { key: "G4", time: 14.0 },
+    { key: "G4", time: 14.5 },
+    { key: "F4", time: 15.0 },
+    { key: "F4", time: 15.5 },
+    { key: "E4", time: 16.0 },
+    { key: "E4", time: 16.5 },
+    { key: "D4", time: 17.0 },
+
+    // C C G G A A G
+    { key: "C4", time: 18.0 },
+    { key: "C4", time: 18.5 },
+    { key: "G4", time: 19.0 },
+    { key: "G4", time: 19.5 },
+    { key: "A4", time: 20.0 },
+    { key: "A4", time: 20.5 },
+    { key: "G4", time: 21.0 },
+
+    // F F E E D D C
+    { key: "F4", time: 22.0 },
+    { key: "F4", time: 22.5 },
+    { key: "E4", time: 23.0 },
+    { key: "E4", time: 23.5 },
+    { key: "D4", time: 24.0 },
+    { key: "D4", time: 24.5 },
+    { key: "C4", time: 25.0 }
+  ]
+}
