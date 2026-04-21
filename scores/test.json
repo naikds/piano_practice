@@ -9,15 +9,15 @@
   },
   "notes": [
     { "key": "C5", "time": 0.0 },
-    { "key": "C5", "time": 0.5 },
-    { "key": "E5", "time": 1.0 },
-    { "key": "G5", "time": 1.5 },
+    { "key": "C5", "time": 0.4 },
+    { "key": "E5", "time": 0.8 },
+    { "key": "G5", "time": 1.0 },
 
-    { "key": "C5", "time": 2.5 },
     { "key": "C5", "time": 3.0 },
-    { "key": "E5", "time": 3.5 },
-    { "key": "E5", "time": 4.0 },
-    { "key": "F5", "time": 4.5 },
-    { "key": "F5", "time": 5.0 }
+    { "key": "C5", "time": 3.2 },
+    { "key": "E5", "time": 3.6 },
+    { "key": "E5", "time": 4.8 },
+    { "key": "F5", "time": 5.2 },
+    { "key": "F5", "time": 5.4 }
   ]
 }
