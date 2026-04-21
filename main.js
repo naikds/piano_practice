@@ -1,7 +1,7 @@
 /* =================================================
    import (@tonejs/midi)
    ================================================= */
-import { Midi } from "./@tonejs/midi/dist/Midi.js";
+import { Midi } from "https://esm.sh/@tonejs/midi";
 
 /* =================================================
    基本DOM
