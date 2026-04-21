@@ -8,7 +8,6 @@
     }
   },
   notes: [
-    // C C G G A A G
     { key: "C4", time: 2.0 },
     { key: "C4", time: 2.5 },
     { key: "G4", time: 3.0 },
