@@ -134,131 +134,152 @@ keyboard.addEventListener("touchstart", e => {
 /* =================================================
    MIDI 最小パーサ
    ================================================= */
-
 function readVar(view, pos, limit) {
-  let v = 0, i = 0;
+  let v = 0;
+  let i = 0;
 
   while (true) {
     if (pos + i >= limit) {
-      throw new Error("readVar: unexpected end of track");
+      throw new Error("readVar overflow");
     }
     const b = view.getUint8(pos + i);
     v = (v << 7) | (b & 0x7f);
     i++;
     if (!(b & 0x80)) break;
   }
-
   return { v, l: i };
 }
 
-function parseMIDI(buf) {
-  const v = new DataView(buf);
+function parseMIDI(buffer) {
+  const view = new DataView(buffer);
   let p = 0;
 
   const str = n => {
     let s = "";
-    for (let i = 0; i < n; i++) s += String.fromCharCode(v.getUint8(p++));
+    for (let i = 0; i < n; i++) {
+      s += String.fromCharCode(view.getUint8(p++));
+    }
     return s;
   };
-  const u16 = () => (p += 2, v.getUint16(p - 2));
-  const u32 = () => (p += 4, v.getUint32(p - 4));
+  const u16 = () => (p += 2, view.getUint16(p - 2));
+  const u32 = () => (p += 4, view.getUint32(p - 4));
 
+  /* ---------- MThd ---------- */
   if (str(4) !== "MThd") return [];
-  p += 4;
-  u16();
-  const tracks = u16();
-  const div = u16();
 
-  let tempo = 500000;
-  const notes = [];
+  const headerLen = u32();      // ← 重要
+  const format = u16();
+  const trackCount = u16();
+  const division = u16();
 
-  for (let t = 0; t < tracks; t++) {
+  // headerLen が 6 以外でも壊れない
+  if (headerLen > 6) {
+    p += headerLen - 6;
+  }
+
+  // SMPTE division は今回は未対応
+  if (division & 0x8000) {
+    console.warn("SMPTE division not supported");
+    return [];
+  }
+
+  let tempo = 500000; // μsec / quarter note
+  const allNotes = [];
+
+  /* ---------- MTrk ---------- */
+  for (let t = 0; t < trackCount; t++) {
     if (str(4) !== "MTrk") break;
 
     const trackLen = u32();
     const trackEnd = p + trackLen;
 
     let time = 0;
-    let run = 0;
-    const on = new Map();
-    let broken = false;
+    let runningStatus = 0;
+    const noteOnMap = new Map();
 
     while (p < trackEnd) {
-      try {
-        // Δtime
-        const dt = readVar(v, p, trackEnd);
-        p += dt.l;
-        time += dt.v;
+      // Δtime
+      const dt = readVar(view, p, trackEnd);
+      p += dt.l;
+      time += dt.v;
 
-        if (p >= trackEnd) break;
+      let status = view.getUint8(p);
 
-        let s = v.getUint8(p);
-        if (s < 0x80) {
-          s = run;
-        } else {
-          p++;
-          run = s;
+      // running status
+      if (status < 0x80) {
+        if (!runningStatus) throw new Error("Invalid running status");
+        status = runningStatus;
+      } else {
+        p++;
+        runningStatus = status;
+      }
+
+      /* ---- Note On ---- */
+      if ((status & 0xf0) === 0x90) {
+        const note = view.getUint8(p++);
+        const vel = view.getUint8(p++);
+        if (vel > 0) {
+          noteOnMap.set(note, time);
+        } else if (noteOnMap.has(note)) {
+          allNotes.push({
+            midi: note,
+            start: noteOnMap.get(note),
+            end: time
+          });
+          noteOnMap.delete(note);
         }
 
-        // Note On
-        if ((s & 0xf0) === 0x90) {
-          const n = v.getUint8(p++);
-          const vel = v.getUint8(p++);
-          if (vel) {
-            on.set(n, time);
-          } else if (on.has(n)) {
-            notes.push({ n, s: on.get(n), e: time });
-            on.delete(n);
-          }
-
-        // Note Off
-        } else if ((s & 0xf0) === 0x80) {
-          const n = v.getUint8(p++);
-          p++;
-          if (on.has(n)) {
-            notes.push({ n, s: on.get(n), e: time });
-            on.delete(n);
-          }
-
-        // Meta Event
-        } else if (s === 0xff) {
-          const type = v.getUint8(p++);
-          const l = readVar(v, p, trackEnd);
-          p += l.l;
-
-          if (type === 0x51 && l.v === 3) {
-            tempo =
-              (v.getUint8(p) << 16) |
-              (v.getUint8(p + 1) << 8) |
-               v.getUint8(p + 2);
-          }
-
-          // End of Track → 正常終了
-          if (type === 0x2f) {
-            break;
-          }
-
-          p += l.v;
-
-        // その他の MIDI イベント
-        } else {
-          p += ((s & 0xf0) === 0xc0 || (s & 0xf0) === 0xd0) ? 1 : 2;
+      /* ---- Note Off ---- */
+      } else if ((status & 0xf0) === 0x80) {
+        const note = view.getUint8(p++);
+        p++; // velocity
+        if (noteOnMap.has(note)) {
+          allNotes.push({
+            midi: note,
+            start: noteOnMap.get(note),
+            end: time
+          });
+          noteOnMap.delete(note);
         }
-      } catch (e) {
-        console.warn("Broken track skipped");
-        broken = true;
-        break;
+
+      /* ---- Meta Event ---- */
+      } else if (status === 0xff) {
+        const type = view.getUint8(p++);
+        const len = readVar(view, p, trackEnd);
+        p += len.l;
+
+        // Tempo
+        if (type === 0x51 && len.v === 3) {
+          tempo =
+            (view.getUint8(p) << 16) |
+            (view.getUint8(p + 1) << 8) |
+             view.getUint8(p + 2);
+        }
+
+        // End of Track
+        if (type === 0x2f) {
+          break;
+        }
+
+        p += len.v;
+
+      /* ---- Other MIDI Events ---- */
+      } else {
+        // Program Change / Channel Aftertouch = 1 byte
+        p += ((status & 0xf0) === 0xc0 || (status & 0xf0) === 0xd0) ? 1 : 2;
       }
     }
 
-    // 壊れていても、次のトラックへ
     p = trackEnd;
   }
 
-  const sec = tempo / 1e6 / div;
-  return notes.map(n => ({
-    midi: n.n,
-    time: n.s * sec
+  // tick → sec
+  const secPerTick = (tempo / 1e6) / division;
+
+  return allNotes.map(n => ({
+    midi: n.midi,
+    time: n.start * secPerTick,
+    duration: (n.end - n.start) * secPerTick
   }));
 }
 
