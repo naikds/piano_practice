@@ -6,6 +6,11 @@
       "file": "twinkle.json"
     },
     {
+      "id": "erise",
+      "title": "エリーゼのために",
+      "file": "erise.json
+    },
+    {
       "id": "test",
       "title": "テスト",
       "file": "test.json"
