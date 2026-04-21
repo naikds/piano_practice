@@ -1,4 +1,9 @@
 /* =================================================
+   import (@tonejs/midi)
+   ================================================= */
+import { Midi } from "./@tonejs/midi/dist/Midi.js";
+
+/* =================================================
    基本DOM
    ================================================= */
 
@@ -132,160 +137,9 @@ keyboard.addEventListener("touchstart", e => {
 }, { passive: false });
 
 /* =================================================
-   MIDI 最小パーサ
-   ================================================= */
-function readVar(view, pos, limit) {
-  let v = 0;
-  let i = 0;
-
-  while (true) {
-    if (pos + i >= limit) {
-      throw new Error("readVar overflow");
-    }
-    const b = view.getUint8(pos + i);
-    v = (v << 7) | (b & 0x7f);
-    i++;
-    if (!(b & 0x80)) break;
-  }
-  return { v, l: i };
-}
-
-function parseMIDI(buffer) {
-  const view = new DataView(buffer);
-  let p = 0;
-
-  const str = n => {
-    let s = "";
-    for (let i = 0; i < n; i++) {
-      s += String.fromCharCode(view.getUint8(p++));
-    }
-    return s;
-  };
-  const u16 = () => (p += 2, view.getUint16(p - 2));
-  const u32 = () => (p += 4, view.getUint32(p - 4));
-
-  /* ---------- MThd ---------- */
-  if (str(4) !== "MThd") return [];
-
-  const headerLen = u32();      // ← 重要
-  const format = u16();
-  const trackCount = u16();
-  const division = u16();
-
-  // headerLen が 6 以外でも壊れない
-  if (headerLen > 6) {
-    p += headerLen - 6;
-  }
-
-  // SMPTE division は今回は未対応
-  if (division & 0x8000) {
-    console.warn("SMPTE division not supported");
-    return [];
-  }
-
-  let tempo = 500000; // μsec / quarter note
-  const allNotes = [];
-
-  /* ---------- MTrk ---------- */
-  for (let t = 0; t < trackCount; t++) {
-    if (str(4) !== "MTrk") break;
-
-    const trackLen = u32();
-    const trackEnd = p + trackLen;
-
-    let time = 0;
-    let runningStatus = 0;
-    const noteOnMap = new Map();
-
-    while (p < trackEnd) {
-      // Δtime
-      const dt = readVar(view, p, trackEnd);
-      p += dt.l;
-      time += dt.v;
-
-      let status = view.getUint8(p);
-
-      // running status
-      if (status < 0x80) {
-        if (!runningStatus) throw new Error("Invalid running status");
-        status = runningStatus;
-      } else {
-        p++;
-        runningStatus = status;
-      }
-
-      /* ---- Note On ---- */
-      if ((status & 0xf0) === 0x90) {
-        const note = view.getUint8(p++);
-        const vel = view.getUint8(p++);
-        if (vel > 0) {
-          noteOnMap.set(note, time);
-        } else if (noteOnMap.has(note)) {
-          allNotes.push({
-            midi: note,
-            start: noteOnMap.get(note),
-            end: time
-          });
-          noteOnMap.delete(note);
-        }
-
-      /* ---- Note Off ---- */
-      } else if ((status & 0xf0) === 0x80) {
-        const note = view.getUint8(p++);
-        p++; // velocity
-        if (noteOnMap.has(note)) {
-          allNotes.push({
-            midi: note,
-            start: noteOnMap.get(note),
-            end: time
-          });
-          noteOnMap.delete(note);
-        }
-
-      /* ---- Meta Event ---- */
-      } else if (status === 0xff) {
-        const type = view.getUint8(p++);
-        const len = readVar(view, p, trackEnd);
-        p += len.l;
-
-        // Tempo
-        if (type === 0x51 && len.v === 3) {
-          tempo =
-            (view.getUint8(p) << 16) |
-            (view.getUint8(p + 1) << 8) |
-             view.getUint8(p + 2);
-        }
-
-        // End of Track
-        if (type === 0x2f) {
-          break;
-        }
-
-        p += len.v;
-
-      /* ---- Other MIDI Events ---- */
-      } else {
-        // Program Change / Channel Aftertouch = 1 byte
-        p += ((status & 0xf0) === 0xc0 || (status & 0xf0) === 0xd0) ? 1 : 2;
-      }
-    }
-
-    p = trackEnd;
-  }
-
-  // tick → sec
-  const secPerTick = (tempo / 1e6) / division;
-
-  return allNotes.map(n => ({
-    midi: n.midi,
-    time: n.start * secPerTick,
-    duration: (n.end - n.start) * secPerTick
-  }));
-}
-
-/* =================================================
    ノーツ描画（timeベース）
    ================================================= */
+
 const SPEED = 220;
 
 function draw(ts) {
@@ -298,24 +152,26 @@ function draw(ts) {
   ctx.strokeStyle = "#0f0";
   ctx.beginPath();
   ctx.moveTo(0, judge);
-  ctx.lineTo(canvas.width, judge);
+  ctx.lineTo(canvas.clientWidth, judge);
   ctx.stroke();
 
-let alive = false;
+  let alive = false;
 
   notes.forEach(n => {
     const y = judge - (n.time - now) * SPEED;
     if (y < -30 || y > canvas.clientHeight + 30) return;
 
-   alive = true;
-     hasShownNote = true;
+    alive = true;
+    hasShownNote = true;
+
     const r = keyRect(n.midi);
     if (!r) return;
+
     ctx.fillStyle = "#0af";
     ctx.fillRect(r.x, y, r.w, 18);
   });
-   
-   if (!freePlay && hasShownNote && !alive && now > lastNoteTime + 0.5) {
+
+  if (!freePlay && hasShownNote && !alive && now > lastNoteTime + 0.5) {
     endMenu.style.display = "flex";
     return;
   }
@@ -324,17 +180,40 @@ let alive = false;
 }
 
 /* =================================================
-   曲読み込み
+   曲読み込み（@tonejs/midi）
    ================================================= */
 
 async function loadSong(url) {
-  const res = await fetch(url);
-  const buf = await res.arrayBuffer();
-  notes = parseMIDI(buf).filter(n => keysByMidi.has(n.midi));
-  lastNoteTime = Math.max(...notes.map(n => n.time));
+  const midi = await Midi.fromUrl(url);
+
+  notes = [];
+
+  midi.tracks.forEach(track => {
+    track.notes.forEach(note => {
+      notes.push({
+        midi: note.midi,
+        time: note.time,
+        duration: note.duration
+      });
+    });
+  });
+
+  // 鍵盤範囲に収める（不要なら消してOK）
+  notes = notes.filter(n => keysByMidi.has(n.midi));
+
+  lastNoteTime = notes.length
+    ? Math.max(...notes.map(n => n.time))
+    : 0;
+
   startTime = null;
-   hasShownNote = false;
+  hasShownNote = false;
+
+  console.log("loaded notes:", notes.slice(0, 5));
 }
+
+/* =================================================
+   曲選択UI
+   ================================================= */
 
 songMenu.addEventListener("touchstart", async e => {
   const s = e.target.closest(".song");
@@ -355,7 +234,7 @@ songMenu.addEventListener("touchstart", async e => {
 
 replayBtn.onclick = () => {
   startTime = null;
-   hasShownNote = false
+  hasShownNote = false;
   endMenu.style.display = "none";
 };
 
@@ -372,5 +251,5 @@ overlay.addEventListener("touchstart", () => {
   initAudio();
   overlay.style.display = "none";
   songMenu.style.display = "flex";
- requestAnimationFrame(draw);
+  requestAnimationFrame(draw);
 });
