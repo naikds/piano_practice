@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "title": "エリーゼのために,
+    "scrollSpeed": 1.0,
+    "keyRange": {
+      "start": "E4",
+      "octaves": 3
+    }
+  },
+  "notes": [
+    { "key": "E5", "time": 0.0 },
+    { "key": "D#5", "time": 0.5 },
+    { "key": "E5", "time": 1.0 },
+    { "key": "D#5", "time": 1.5 },
+    { "key": "E5", "time": 2.0 },
+    { "key": "B4", "time": 2.5 },
+    { "key": "D5", "time": 3.0 },
+    { "key": "C5", "time": 3.5 },
+    { "key": "A4", "time": 4.0 },
+
+    { "key": "C4", "time": 5.0 },
+    { "key": "E4", "time": 5.5 },
+    { "key": "A4", "time": 6.0 },
+    { "key": "B4", "time": 6.5 },
+
+    { "key": "E4", "time": 7.5 },
+    { "key": "G#4", "time": 8.0 },
+    { "key": "B4", "time": 8.5 },
+    { "key": "C5", "time": 9.0 },
+
+    { "key": "E4", "time": 10.0 },
+    { "key": "E5", "time": 10.5 },
+    { "key": "D#5", "time": 11.0 },
+    { "key": "E5", "time": 11.5 },
+    { "key": "D#5", "time": 12.0 },
+    { "key": "E5", "time": 12.5 },
+    { "key": "B4", "time": 13.0 },
+    { "key": "D5", "time": 13.5 },
+    { "key": "C5", "time": 14.0 },
+    { "key": "A4", "time": 14.5 }
+  ]
+}
